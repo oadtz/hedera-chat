@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import { useRouter } from "next/router";
 import { TopicCreateTransaction } from "@hashgraph/sdk";
 
@@ -24,6 +24,10 @@ const NewChatRoom: React.FunctionComponent = () => {
       router.replace(`/chat/${topicId}`);
     }
   };
+
+  useEffect(() => {
+    setUserName(localStorage.getItem("userName") || "");
+  }, []);
 
   return (
     <form onSubmit={handleSubmit} className="space-y-4">

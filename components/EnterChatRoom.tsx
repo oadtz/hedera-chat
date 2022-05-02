@@ -1,10 +1,28 @@
+import { TopicInfoQuery } from "@hashgraph/sdk";
+import { useRouter } from "next/router";
 import { useEffect, useState } from "react";
+import hederaClient from "../libs/hederaClient";
 
 const EnterChatRoom: React.FunctionComponent = () => {
+  const router = useRouter();
   const [roomId, setRoomId] = useState("");
   const [userName, setUserName] = useState("");
-  const handleSubmit = (e: any) => {
+  const handleSubmit = async (e: any) => {
     e.preventDefault();
+
+    try {
+      const query = new TopicInfoQuery().setTopicId(roomId);
+
+      const { topicId } = await query.execute(hederaClient);
+
+      if (topicId) {
+        localStorage.setItem("userName", userName);
+        localStorage.setItem("roomId", topicId.toString());
+        router.replace(`/chat/${topicId}`);
+      }
+    } catch (e) {
+      alert("Error! We cannot log you in to the chatroom");
+    }
   };
 
   useEffect(() => {

@@ -13,12 +13,17 @@ const Chat: NextPage = () => {
 
   useEffect(() => {
     const getTopic = async () => {
-      const query = new TopicInfoQuery().setTopicId(String(id));
+      try {
+        const query = new TopicInfoQuery().setTopicId(String(id));
 
-      const { topicId, topicMemo } = await query.execute(hederaClient);
+        const { topicId, topicMemo } = await query.execute(hederaClient);
 
-      setRoomId(topicId.toString());
-      setRoomName(topicMemo);
+        setRoomId(topicId.toString());
+        setRoomName(topicMemo);
+      } catch (e) {
+        alert("Error loading chat room");
+        router.replace("/");
+      }
     };
 
     if (id) {
