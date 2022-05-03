@@ -1,59 +1,47 @@
 /* eslint-disable react/no-unescaped-entities */
 
-import {
-  TopicCreateTransaction,
-  TopicId,
-  TopicMessageQuery,
-  TopicMessageSubmitTransaction,
-} from "@hashgraph/sdk";
-import { useEffect } from "react";
-import hederaClient from "../libs/hederaClient";
+import axios from "axios";
+import { useEffect, useState } from "react";
 
 /* eslint-disable @next/next/no-img-element */
 const ChatMessages: React.FunctionComponent = () => {
+  const [messages, setMessages] = useState([]);
+  const [lastTimestamp, setLastTimestamp] = useState("0");
+
   useEffect(() => {
-    // if (localStorage.getItem("roomId") && hederaClient) {
-    //   const topicId = TopicId.fromString(localStorage.getItem("roomId") || "");
+    let intervalId: any;
+    const getMessages = async (roomId: string) => {
+      const { data } = await axios.get(
+        `https://testnet.mirrornode.hedera.com/api/v1/topics/${roomId}/messages`,
+        {
+          params: {
+            encoding: "utf8",
+            order: "asc",
+            timestamp: `gt:${lastTimestamp}`,
+          },
+        }
+      );
 
-    //   const messages = new TopicMessageQuery().setTopicId(topicId).subscribe(
-    //     hederaClient,
-    //     (err) => {
-    //       console.log(err);
-    //     },
-    //     (message) => console.log(message)
-    //   );
-    // }
-    const main = async () => {
-      let txResponse = await new TopicCreateTransaction().execute(hederaClient);
-
-      //Grab the newly generated topic ID
-      let receipt = await txResponse.getReceipt(hederaClient);
-      let topicId = receipt.topicId;
-      console.log(`Your topic ID is: ${topicId}`);
-
-      // Wait 5 seconds between consensus topic creation and subscription creation
-      await new Promise((resolve) => setTimeout(resolve, 5000));
-
-      //Create the query
-      new TopicMessageQuery()
-        .setTopicId(topicId?.toString() || "")
-        .subscribe(hederaClient, null, (message) => {
-          console.log(message);
-        });
-
-      // Send one message
-      let sendResponse = await new TopicMessageSubmitTransaction({
-        topicId: topicId?.toString() || "",
-        message: "Hello, HCS!",
-      }).execute(hederaClient);
-      const getReceipt = await sendResponse.getReceipt(hederaClient);
-
-      //Get the status of the transaction
-      const transactionStatus = getReceipt.status;
-      console.log("The message transaction status" + transactionStatus);
+      if (data) {
+        if (data.messages.length > 0) {
+          setLastTimestamp(
+            data.messages[data.messages.length - 1].consensus_timestamp
+          );
+        }
+        setMessages(messages.concat(data.messages));
+      }
     };
 
-    main();
+    if (localStorage.getItem("roomId")) {
+      intervalId = setInterval(
+        () => getMessages(localStorage.getItem("roomId") || ""),
+        1000
+      );
+    }
+
+    return () => {
+      clearInterval(intervalId);
+    };
   }, []);
 
   return (
@@ -61,194 +49,48 @@ const ChatMessages: React.FunctionComponent = () => {
       id="messages"
       className="flex flex-col space-y-4 p-3 overflow-y-auto scrollbar-thumb-blue scrollbar-thumb-rounded scrollbar-track-blue-lighter scrollbar-w-2 scrolling-touch"
     >
-      <div className="chat-message">
-        <div className="flex items-end">
-          <div className="flex flex-col space-y-2 text-xs max-w-xs mx-2 order-2 items-start">
-            <div>
-              <span className="px-4 py-2 rounded-lg inline-block rounded-bl-none bg-gray-300 text-gray-600">
-                Can be verified on any platform using docker
-              </span>
+      {messages.map((message: any) => {
+        const decryptedMsg = JSON.parse(message.message);
+
+        if (decryptedMsg.username !== localStorage.getItem("userName"))
+          return (
+            <div className="chat-message" key={message.runningHash}>
+              <div className="flex items-end">
+                <div className="flex flex-col space-y-2 text-xs max-w-xs mx-2 order-2 items-start">
+                  <div>
+                    <span className="px-4 py-2 rounded-lg inline-block rounded-bl-none bg-blue-600 text-white">
+                      {decryptedMsg.message}
+                    </span>
+                  </div>
+                </div>
+                <div className="bg-gray-600 w-10 h-10 text-white rounded-full flex justify-center items-center order-1">
+                  <span className="my-auto text-xs">
+                    {decryptedMsg.username[0].toUpperCase()}
+                  </span>
+                </div>
+              </div>
+            </div>
+          );
+
+        return (
+          <div className="chat-message" key={message.runningHash}>
+            <div className="flex items-end justify-end">
+              <div className="flex flex-col space-y-2 text-xs max-w-xs mx-2 order-1 items-end">
+                <div>
+                  <span className="px-4 py-2 rounded-lg inline-block rounded-br-none bg-gray-300 text-gray-600  ">
+                    {decryptedMsg.message}
+                  </span>
+                </div>
+              </div>
+              <div className="bg-gray-600 w-10 h-10 text-white rounded-full flex justify-center items-center order-2">
+                <span className="my-auto text-xs">
+                  {decryptedMsg.username[0].toUpperCase()}
+                </span>
+              </div>
             </div>
           </div>
-          <img
-            src="https://images.unsplash.com/photo-1549078642-b2ba4bda0cdb?ixlib=rb-1.2.1&amp;ixid=eyJhcHBfaWQiOjEyMDd9&amp;auto=format&amp;fit=facearea&amp;facepad=3&amp;w=144&amp;h=144"
-            alt="My profile"
-            className="w-6 h-6 rounded-full order-1"
-          />
-        </div>
-      </div>
-      <div className="chat-message">
-        <div className="flex items-end justify-end">
-          <div className="flex flex-col space-y-2 text-xs max-w-xs mx-2 order-1 items-end">
-            <div>
-              <span className="px-4 py-2 rounded-lg inline-block rounded-br-none bg-blue-600 text-white ">
-                Your error message says permission denied, npm global installs
-                must be given root privileges.
-              </span>
-            </div>
-          </div>
-          <img
-            src="https://images.unsplash.com/photo-1590031905470-a1a1feacbb0b?ixlib=rb-1.2.1&amp;ixid=eyJhcHBfaWQiOjEyMDd9&amp;auto=format&amp;fit=facearea&amp;facepad=3&amp;w=144&amp;h=144"
-            alt="My profile"
-            className="w-6 h-6 rounded-full order-2"
-          />
-        </div>
-      </div>
-      <div className="chat-message">
-        <div className="flex items-end">
-          <div className="flex flex-col space-y-2 text-xs max-w-xs mx-2 order-2 items-start">
-            <div>
-              <span className="px-4 py-2 rounded-lg inline-block bg-gray-300 text-gray-600">
-                Command was run with root privileges. I'm sure about that.
-              </span>
-            </div>
-            <div>
-              <span className="px-4 py-2 rounded-lg inline-block bg-gray-300 text-gray-600">
-                I've update the description so it's more obviously now
-              </span>
-            </div>
-            <div>
-              <span className="px-4 py-2 rounded-lg inline-block bg-gray-300 text-gray-600">
-                FYI https://askubuntu.com/a/700266/510172
-              </span>
-            </div>
-            <div>
-              <span className="px-4 py-2 rounded-lg inline-block rounded-bl-none bg-gray-300 text-gray-600">
-                Check the line above (it ends with a # so, I'm running it as
-                root )<pre># npm install -g @vue/devtools</pre>
-              </span>
-            </div>
-          </div>
-          <img
-            src="https://images.unsplash.com/photo-1549078642-b2ba4bda0cdb?ixlib=rb-1.2.1&amp;ixid=eyJhcHBfaWQiOjEyMDd9&amp;auto=format&amp;fit=facearea&amp;facepad=3&amp;w=144&amp;h=144"
-            alt="My profile"
-            className="w-6 h-6 rounded-full order-1"
-          />
-        </div>
-      </div>
-      <div className="chat-message">
-        <div className="flex items-end justify-end">
-          <div className="flex flex-col space-y-2 text-xs max-w-xs mx-2 order-1 items-end">
-            <div>
-              <span className="px-4 py-2 rounded-lg inline-block rounded-br-none bg-blue-600 text-white ">
-                Any updates on this issue? I'm getting the same error when
-                trying to install devtools. Thanks
-              </span>
-            </div>
-          </div>
-          <img
-            src="https://images.unsplash.com/photo-1590031905470-a1a1feacbb0b?ixlib=rb-1.2.1&amp;ixid=eyJhcHBfaWQiOjEyMDd9&amp;auto=format&amp;fit=facearea&amp;facepad=3&amp;w=144&amp;h=144"
-            alt="My profile"
-            className="w-6 h-6 rounded-full order-2"
-          />
-        </div>
-      </div>
-      <div className="chat-message">
-        <div className="flex items-end">
-          <div className="flex flex-col space-y-2 text-xs max-w-xs mx-2 order-2 items-start">
-            <div>
-              <span className="px-4 py-2 rounded-lg inline-block rounded-bl-none bg-gray-300 text-gray-600">
-                Thanks for your message David. I thought I'm alone with this
-                issue. Please, 👍 the issue to support it :)
-              </span>
-            </div>
-          </div>
-          <img
-            src="https://images.unsplash.com/photo-1549078642-b2ba4bda0cdb?ixlib=rb-1.2.1&amp;ixid=eyJhcHBfaWQiOjEyMDd9&amp;auto=format&amp;fit=facearea&amp;facepad=3&amp;w=144&amp;h=144"
-            alt="My profile"
-            className="w-6 h-6 rounded-full order-1"
-          />
-        </div>
-      </div>
-      <div className="chat-message">
-        <div className="flex items-end justify-end">
-          <div className="flex flex-col space-y-2 text-xs max-w-xs mx-2 order-1 items-end">
-            <div>
-              <span className="px-4 py-2 rounded-lg inline-block bg-blue-600 text-white ">
-                Are you using sudo?
-              </span>
-            </div>
-            <div>
-              <span className="px-4 py-2 rounded-lg inline-block rounded-br-none bg-blue-600 text-white ">
-                Run this command sudo chown -R `whoami/.npm-global/ then install
-                the package globally without using sudo
-              </span>
-            </div>
-          </div>
-          <img
-            src="https://images.unsplash.com/photo-1590031905470-a1a1feacbb0b?ixlib=rb-1.2.1&amp;ixid=eyJhcHBfaWQiOjEyMDd9&amp;auto=format&amp;fit=facearea&amp;facepad=3&amp;w=144&amp;h=144"
-            alt="My profile"
-            className="w-6 h-6 rounded-full order-2"
-          />
-        </div>
-      </div>
-      <div className="chat-message">
-        <div className="flex items-end">
-          <div className="flex flex-col space-y-2 text-xs max-w-xs mx-2 order-2 items-start">
-            <div>
-              <span className="px-4 py-2 rounded-lg inline-block bg-gray-300 text-gray-600">
-                It seems like you are from Mac OS world. There is no /Users/
-                folder on linux 😄
-              </span>
-            </div>
-            <div>
-              <span className="px-4 py-2 rounded-lg inline-block rounded-bl-none bg-gray-300 text-gray-600">
-                I have no issue with any other packages installed with root
-                permission globally.
-              </span>
-            </div>
-          </div>
-          <img
-            src="https://images.unsplash.com/photo-1549078642-b2ba4bda0cdb?ixlib=rb-1.2.1&amp;ixid=eyJhcHBfaWQiOjEyMDd9&amp;auto=format&amp;fit=facearea&amp;facepad=3&amp;w=144&amp;h=144"
-            alt="My profile"
-            className="w-6 h-6 rounded-full order-1"
-          />
-        </div>
-      </div>
-      <div className="chat-message">
-        <div className="flex items-end justify-end">
-          <div className="flex flex-col space-y-2 text-xs max-w-xs mx-2 order-1 items-end">
-            <div>
-              <span className="px-4 py-2 rounded-lg inline-block rounded-br-none bg-blue-600 text-white ">
-                yes, I have a mac. I never had issues with root permission as
-                well, but this helped me to solve the problem
-              </span>
-            </div>
-          </div>
-          <img
-            src="https://images.unsplash.com/photo-1590031905470-a1a1feacbb0b?ixlib=rb-1.2.1&amp;ixid=eyJhcHBfaWQiOjEyMDd9&amp;auto=format&amp;fit=facearea&amp;facepad=3&amp;w=144&amp;h=144"
-            alt="My profile"
-            className="w-6 h-6 rounded-full order-2"
-          />
-        </div>
-      </div>
-      <div className="chat-message">
-        <div className="flex items-end">
-          <div className="flex flex-col space-y-2 text-xs max-w-xs mx-2 order-2 items-start">
-            <div>
-              <span className="px-4 py-2 rounded-lg inline-block bg-gray-300 text-gray-600">
-                I get the same error on Arch Linux (also with sudo)
-              </span>
-            </div>
-            <div>
-              <span className="px-4 py-2 rounded-lg inline-block bg-gray-300 text-gray-600">
-                I also have this issue, Here is what I was doing until now:
-                #1076
-              </span>
-            </div>
-            <div>
-              <span className="px-4 py-2 rounded-lg inline-block rounded-bl-none bg-gray-300 text-gray-600">
-                even i am facing
-              </span>
-            </div>
-          </div>
-          <img
-            src="https://images.unsplash.com/photo-1549078642-b2ba4bda0cdb?ixlib=rb-1.2.1&amp;ixid=eyJhcHBfaWQiOjEyMDd9&amp;auto=format&amp;fit=facearea&amp;facepad=3&amp;w=144&amp;h=144"
-            alt="My profile"
-            className="w-6 h-6 rounded-full order-1"
-          />
-        </div>
-      </div>
+        );
+      })}
     </div>
   );
 };
