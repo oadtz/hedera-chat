@@ -2,14 +2,20 @@ import { TopicId, TopicMessageSubmitTransaction } from "@hashgraph/sdk";
 import { useState } from "react";
 import hederaClient from "../libs/hederaClient";
 
-const ChatNewMessage: React.FunctionComponent = () => {
+interface IChatMessagesProps {
+  roomId: string;
+}
+
+const ChatNewMessage: React.FunctionComponent<IChatMessagesProps> = ({
+  roomId,
+}) => {
   const [message, setMessage] = useState("");
 
   const handleSubmit = async (e: any) => {
     e.preventDefault();
 
     let txResponse = await new TopicMessageSubmitTransaction({
-      topicId: TopicId.fromString(localStorage.getItem("roomId") || ""),
+      topicId: TopicId.fromString(roomId),
       message: JSON.stringify({
         username: localStorage.getItem("userName"),
         message,

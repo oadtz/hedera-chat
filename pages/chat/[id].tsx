@@ -78,8 +78,8 @@ const Chat: NextPage = () => {
           </a>
         </div>
       </div>
-      <ChatMessages />
-      <ChatNewMessage />
+      <ChatMessages roomId={roomId} />
+      <ChatNewMessage roomId={roomId} />
     </div>
   );
 };

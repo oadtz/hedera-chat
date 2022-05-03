@@ -4,7 +4,14 @@ import axios from "axios";
 import { useEffect, useState } from "react";
 
 /* eslint-disable @next/next/no-img-element */
-const ChatMessages: React.FunctionComponent = () => {
+
+interface IChatMessagesProps {
+  roomId: string;
+}
+
+const ChatMessages: React.FunctionComponent<IChatMessagesProps> = ({
+  roomId,
+}) => {
   const [messages, setMessages] = useState<any[]>([]);
   const [lastTimestamp, setLastTimestamp] = useState("0");
 
@@ -59,11 +66,8 @@ const ChatMessages: React.FunctionComponent = () => {
       }
     };
 
-    if (localStorage.getItem("roomId")) {
-      intervalId = setInterval(
-        () => getMessages(localStorage.getItem("roomId") || ""),
-        1000
-      );
+    if (roomId) {
+      intervalId = setInterval(() => getMessages(roomId), 1000);
     }
 
     return () => {
